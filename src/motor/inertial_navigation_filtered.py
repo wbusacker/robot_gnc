@@ -27,15 +27,15 @@ def sim():
     time_step_s             = 0.01  # Simulate the robot in time increments of 10 milliseconds
     motor_max_rpm           = 120   # Max RPM of the motor is 120 RPM
     steady_state_condition  = 5     # The robot needs to sit almost still for 5 seconds
-    filter_length           = int(0.1 / time_step_s)
-    controller_threshold    = 0.2
+    filter_length           = int(0.5 / time_step_s)
+    controller_threshold    = 0.01
 
     # Model handles
     motor_actuators     = dc_motor.DC_Motor(time_step_s, motor_max_rpm)
-    controller          = PID(time_step_s, 0.25 , 0.01, 0)
+    controller          = PID(time_step_s, 0.5 , 1, 2)
     accel               = acl.Accelerometer(time_step_s)
-    # filter              = RA_Filter(filter_length)
-    filter              = IIR_Filter()
+    filter              = RA_Filter(filter_length)
+    # filter              = IIR_Filter()
 
     # Make arrays to store the simulation in
 
@@ -84,12 +84,15 @@ def sim():
 
         # Feed the true position into the accelerometer model
         est_accel           = accel.get_accel(current_position)
+        
+        #Filter the detected acceleration
+        est_accel           = filter.filter(est_accel)
         est_velocity        = estimated_velocity[-1] + (est_accel * time_step_s)
         est_position        = estimated_position[-1] + (est_velocity * time_step_s)
 
         # Update simulation arrays
 
-        percent_drift       = abs(((est_position - current_position) / current_position) * 100)
+        percent_drift       = abs(((current_position - est_position) / est_position) * 100)
 
         # Append the simulation arrays
         target_line.append(target_line[-1])             # Target Line's value never changes, but needs to be as long as the sim
@@ -107,8 +110,8 @@ def sim():
             # Get the standard deviation
             standard_deviation  = np.std(estimated_position[int(0-sample_size):])
 
-            # If the standard deviation is 0.01% of the target distance, we've reached steady state
-            if (standard_deviation < (target_line[-1] * 0.0001)):
+            # If the standard deviation is 0.1% of the target distance, we've reached steady state
+            if (standard_deviation < (target_line[-1] * 0.001)):
                 steady_state = True
 
         # If the simulation has gone on longer than 360 seconds, enough is enough
@@ -121,9 +124,9 @@ def sim():
 
     # ax2 = ax1.twinx()
 
-    ax1.plot(timestamp, target_line,            'r',    label="Reference")
+    ax1.plot(timestamp, target_line,            'r',    label="Target Position")
     ax1.plot(timestamp, estimated_position,     'm',    label="Estimated Position")
-    ax1.plot(timestamp, estimated_acceleration, 'y',    label="Reference")
+    ax1.plot(timestamp, estimated_acceleration, 'y',    label="Estimated Accel")
     ax1.plot(timestamp, actual_position,        'c',    label="Actual Position")
     # ax2.plot(timestamp, solution_drift,         'k',    label="Solution Drift")
     ax1.plot(timestamp, control_effort,         'b',    label="Control Effort")
@@ -131,10 +134,16 @@ def sim():
     ax1.legend()
     # ax2.legend()
 
+    ax1.set_ylabel("Position (m)\nAcceleration (m/s/s)")
+    # ax2.set_ylabel("Solution % Deviation")
+
+    ax1.set_xlabel("Time (s)")
+    ax1.set_title("Inertial Navigation / Dead Reckoning\n(Filtered)")
+
     # plt.legend([
     #     "Reference",
     #     "Estimated Position",
-    #     # "Estimate Accel",
+    #     "Estimate Accel",
     #     "Actual Position",
     #     "Solution Drift",
     #     "Control Effort"

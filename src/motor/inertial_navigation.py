@@ -25,10 +25,11 @@ def sim():
     time_step_s             = 0.1  # Simulate the robot in time increments of 10 milliseconds
     motor_max_rpm           = 120   # Max RPM of the motor is 120 RPM
     steady_state_condition  = 5     # The robot needs to sit almost still for 5 seconds
+    controller_threshold    = 0.02
 
     # Model handles
     motor_actuators     = dc_motor.DC_Motor(time_step_s, motor_max_rpm)
-    controller          = PID(time_step_s, 0.5 ,1, 0)
+    controller          = PID(time_step_s, 5 ,1, 0.1)
     accel               = acl.Accelerometer(time_step_s)
 
     # Make arrays to store the simulation in
@@ -56,15 +57,21 @@ def sim():
 
         effort              = controller.process(error)
 
+        # Create a deadband on the controller
+        if( abs(effort) < controller_threshold):
+            effort = 0
+
         # The DC motor only really allows forwards and backwards, so based upon the sign
-        #   of the control effort, move in that direction
+        #   of the control effort, move in that direction.
         distance_traveled   = 0
-        if(abs(effort) == effort):
+        if(effort > 0):
             # Positive
             distance_traveled   = motor_actuators.rotate(dc_motor.DC_Motor.motor_directions["Forwards"])
-        else:
+        elif(effort < 0):
             # Negative
             distance_traveled   = motor_actuators.rotate(dc_motor.DC_Motor.motor_directions["Backwards"])
+        else:
+            distance_traveled   = motor_actuators.rotate(dc_motor.DC_Motor.motor_directions["Sustain"])
         
 
         # Update the true position
@@ -105,21 +112,25 @@ def sim():
 
     # Plot the results from the simulation
 
-    plt.plot(timestamp, target_line,        'r')
-    plt.plot(timestamp, estimated_position, 'm')
-    plt.plot(timestamp, estimated_acceleration, 'y')
-    plt.plot(timestamp, actual_position,    'c')
-    plt.plot(timestamp, solution_drift,     'k')
-    plt.plot(timestamp, control_effort,     'b')
+    fig, ax1 = plt.subplots()
 
-    plt.legend([
-        "Reference",
-        "Estimated Position",
-        "Estimate Accel",
-        "Actual Position",
-        "Solution Drift",
-        "Control Effort"
-    ])
+    # ax2 = ax1.twinx()
+
+    ax1.plot(timestamp, target_line,            'r',    label="Target Position")
+    ax1.plot(timestamp, estimated_position,     'm',    label="Estimated Position")
+    ax1.plot(timestamp, estimated_acceleration, 'y',    label="Estimated Accel")
+    ax1.plot(timestamp, actual_position,        'c',    label="Actual Position")
+    # ax2.plot(timestamp, solution_drift,         'k',    label="Solution Drift")
+    ax1.plot(timestamp, control_effort,         'b',    label="Control Effort")
+
+    ax1.legend()
+    # ax2.legend()
+
+    ax1.set_ylabel("Position (m)\nAcceleration (m/s/s)")
+    # ax2.set_ylabel("Solution % Deviation")
+
+    ax1.set_xlabel("Time (s)")
+    ax1.set_title("Inertial Navigation / Dead Reckoning\n(Un-Filtered)")
 
     plt.show()
 

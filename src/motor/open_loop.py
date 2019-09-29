@@ -41,10 +41,13 @@ def sim():
     # Using an open loop velocity model, we estimate that with the peak RPM
     #   the robot will always travel at a constant speed
 
-    wheel_rps           = (motor_max_rpm * 60) / wheel.gear_ratio
+    wheel_rps           = (motor_max_rpm / 60) / wheel.gear_ratio
     estimated_velocity  = wheel_rps * wheel.circumference_meters
+    # Assume velocity can only be measured with 0.01 m/s accuracy
+    estimated_velocity  = (int(estimated_velocity * 100) / 100.0) + random.gauss(0,0.01)
 
     travel_time         = target_line[-1] / estimated_velocity
+    print(travel_time)
 
     # Run the simulation as long as the steady state critera hasn't been met
     steady_state        = False
@@ -81,11 +84,14 @@ def sim():
 
         # If we think we've ran out of travel time
         else:
+            # Keep updating actual position based upon slowdown rate
+            distance_forward    = motor_actuators.rotate(dc_motor.DC_Motor.motor_directions["Sustain"])
+            actual_location     = actual_position[-1] + distance_forward
 
             # Append the simulation arrays, just updated everything to what they were
             target_line.append(target_line[-1])                 # Target Line's value never changes, but needs to be as long as the sim
             estimated_position.append(estimated_position[-1])
-            actual_position.append(actual_position[-1])
+            actual_position.append(actual_location)
             velocity.append(velocity[-1])
             solution_drift.append(solution_drift[-1])
 
@@ -109,21 +115,26 @@ def sim():
 
     # Plot the results from the simulation
 
-    plt.plot(timestamp, target_line,        'r')
-    plt.plot(timestamp, estimated_position, 'm')
-    plt.plot(timestamp, actual_position,    'c')
-    plt.plot(timestamp, velocity,           'y')
-    plt.plot(timestamp, solution_drift,     'k')
-    plt.plot(timestamp, control_effort,     'b')
+    # Plot the results from the simulation
 
-    plt.legend([
-        "Reference",
-        "Estimated Position",
-        "Actual Position",
-        "Velocity",
-        "Solution Drift",
-        "Control Effort"
-    ])
+    fig, ax1 = plt.subplots()
+
+    # ax2 = ax1.twinx()
+
+    ax1.plot(timestamp, target_line,            'r',    label="Target Position")
+    ax1.plot(timestamp, estimated_position,     'm',    label="Estimated Position")
+    ax1.plot(timestamp, actual_position,        'c',    label="Actual Position")
+    # ax2.plot(timestamp, solution_drift,         'k',    label="Solution Drift")
+    ax1.plot(timestamp, control_effort,         'b',    label="Control Effort")
+
+    ax1.legend()
+    # ax2.legend()
+
+    ax1.set_ylabel("Position (m)")
+    # ax2.set_ylabel("Solution % Deviation")
+
+    ax1.set_xlabel("Time (s)")
+    ax1.set_title("Open Loop Solution")
 
     plt.show()
 
