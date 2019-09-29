@@ -107,8 +107,8 @@ class DC_Motor:
                 if self.cur_rpm < ( -1 * self.max_rpm):
                     self.cur_rpm = ( -1 * self.max_rpm)
 
-        # Simulate some extra noise in the actual rpm. Assume std dev of 5 rpm in guassian distribution
-        step_rpm    = self.cur_rpm + random.gauss(0,5)
+        # Simulate some extra noise in the actual rpm. Assume std dev of 1 rpm in guassian distribution
+        step_rpm    = self.cur_rpm + random.gauss(0,1)
 
         # Calculate wheel rotation amount
         wheel_rpm   = self.cur_rpm / wheel.gear_ratio

@@ -20,9 +20,8 @@ class Accelerometer:
         velocity    = (position     - self.last_position) / self.dt
         accel       = (velocity     - self.last_velocity) / self.dt
 
-        # Add noise
-        accel       += random.gauss(0, 0.00003 * 9.8)
-        accel       += random.gauss(0,0.1225)
+        # Add noise. Assume 100Hz bandwidth
+        accel       += random.gauss(0,0.049)
 
         # Update last know values
         self.last_position  = position
