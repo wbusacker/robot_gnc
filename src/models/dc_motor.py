@@ -53,7 +53,7 @@ class DC_Motor:
         motor_rotations = wheel_rotations * wheel.gear_ratio
 
         # motor_rotations is the ramp limit in revolutions / second, convert to rpm
-        self.rpm_ramp_limit = motor_rotations / 60
+        self.rpm_ramp_limit = motor_rotations * 60
 
     # Returns the distance the robot has traveled in this time step
     def rotate(self, direction):

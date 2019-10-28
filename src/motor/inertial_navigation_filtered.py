@@ -32,7 +32,7 @@ def sim():
 
     # Model handles
     motor_actuators     = dc_motor.DC_Motor(time_step_s, motor_max_rpm)
-    controller          = PID(time_step_s, 0.5 , 1, 2)
+    controller          = PID(time_step_s, 0.5 , 1000, 2)
     accel               = acl.Accelerometer(time_step_s)
     filter              = RA_Filter(filter_length)
     # filter              = IIR_Filter()
